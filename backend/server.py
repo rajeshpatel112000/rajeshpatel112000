@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,10 +6,10 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 import uuid
-from datetime import datetime
-
+from datetime import datetime, date
+from enum import Enum
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -25,8 +25,36 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Expense Categories Enum
+class ExpenseCategory(str, Enum):
+    SEEDS_PLANTS = "Seeds & Plants"
+    FERTILIZERS_PESTICIDES = "Fertilizers & Pesticides"
+    LABOR_COSTS = "Labor Costs"
+    EQUIPMENT_MACHINERY = "Equipment & Machinery"
+    TRANSPORTATION = "Transportation"
+    MISCELLANEOUS = "Miscellaneous"
 
 # Define Models
+class Expense(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    amount: float
+    category: ExpenseCategory
+    description: str
+    date: date = Field(default_factory=date.today)
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class ExpenseCreate(BaseModel):
+    amount: float
+    category: ExpenseCategory
+    description: str
+    date: Optional[date] = None
+
+class BudgetSummary(BaseModel):
+    total_expenses: float
+    expenses_by_category: dict
+    daily_expenses: List[dict]
+    monthly_total: float
+
 class StatusCheck(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
@@ -35,10 +63,99 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
-# Add your routes to the router instead of directly to app
+# Expense Routes
+@api_router.post("/expenses", response_model=Expense)
+async def create_expense(expense_data: ExpenseCreate):
+    expense_dict = expense_data.dict()
+    if expense_dict['date'] is None:
+        expense_dict['date'] = date.today()
+    expense_obj = Expense(**expense_dict)
+    await db.expenses.insert_one(expense_obj.dict())
+    return expense_obj
+
+@api_router.get("/expenses", response_model=List[Expense])
+async def get_expenses(category: Optional[ExpenseCategory] = None, limit: int = 50):
+    filter_query = {}
+    if category:
+        filter_query["category"] = category
+    
+    expenses = await db.expenses.find(filter_query).sort("timestamp", -1).limit(limit).to_list(limit)
+    return [Expense(**expense) for expense in expenses]
+
+@api_router.get("/expenses/{expense_id}", response_model=Expense)
+async def get_expense(expense_id: str):
+    expense = await db.expenses.find_one({"id": expense_id})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    return Expense(**expense)
+
+@api_router.put("/expenses/{expense_id}", response_model=Expense)
+async def update_expense(expense_id: str, expense_data: ExpenseCreate):
+    expense_dict = expense_data.dict()
+    if expense_dict['date'] is None:
+        expense_dict['date'] = date.today()
+    
+    result = await db.expenses.update_one(
+        {"id": expense_id}, 
+        {"$set": expense_dict}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    updated_expense = await db.expenses.find_one({"id": expense_id})
+    return Expense(**updated_expense)
+
+@api_router.delete("/expenses/{expense_id}")
+async def delete_expense(expense_id: str):
+    result = await db.expenses.delete_one({"id": expense_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    return {"message": "Expense deleted successfully"}
+
+@api_router.get("/budget/summary", response_model=BudgetSummary)
+async def get_budget_summary():
+    # Get current month expenses
+    current_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    expenses = await db.expenses.find({
+        "timestamp": {"$gte": current_month}
+    }).to_list(1000)
+    
+    total_expenses = sum(expense["amount"] for expense in expenses)
+    
+    # Group by category
+    expenses_by_category = {}
+    for expense in expenses:
+        category = expense["category"]
+        if category not in expenses_by_category:
+            expenses_by_category[category] = 0
+        expenses_by_category[category] += expense["amount"]
+    
+    # Group by day for last 7 days
+    daily_expenses = []
+    for i in range(7):
+        target_date = (datetime.now() - timedelta(days=i)).date()
+        day_total = sum(
+            expense["amount"] for expense in expenses 
+            if expense["date"] == target_date.isoformat()
+        )
+        daily_expenses.append({
+            "date": target_date.isoformat(),
+            "total": day_total
+        })
+    
+    return BudgetSummary(
+        total_expenses=total_expenses,
+        expenses_by_category=expenses_by_category,
+        daily_expenses=daily_expenses,
+        monthly_total=total_expenses
+    )
+
+# Original status check routes
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Patel Farming API - Expense Tracker Ready!"}
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
