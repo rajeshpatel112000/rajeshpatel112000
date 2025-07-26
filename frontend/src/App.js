@@ -185,7 +185,7 @@ const ExpenseList = ({ expenses, onEditExpense, onDeleteExpense }) => {
             </div>
             <div className="expense-description">{expense.description}</div>
             <div className="expense-footer">
-              <div className="expense-date">{formatDate(expense.date)}</div>
+              <div className="expense-date">{formatDate(expense.expense_date)}</div>
               <div className="expense-actions">
                 <button 
                   onClick={() => onEditExpense(expense)}
