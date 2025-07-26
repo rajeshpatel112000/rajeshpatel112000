@@ -103,6 +103,10 @@ async def update_expense(expense_id: str, expense_data: ExpenseCreate):
     if expense_dict['expense_date'] is None:
         expense_dict['expense_date'] = date.today()
     
+    # Convert date objects to strings for MongoDB storage
+    if isinstance(expense_dict['expense_date'], date):
+        expense_dict['expense_date'] = expense_dict['expense_date'].isoformat()
+    
     result = await db.expenses.update_one(
         {"id": expense_id}, 
         {"$set": expense_dict}
