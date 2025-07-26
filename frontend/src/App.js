@@ -126,12 +126,12 @@ const ExpenseForm = ({ onExpenseAdded, editingExpense, onCancelEdit }) => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="date" className="form-label">Date</label>
+          <label htmlFor="expense_date" className="form-label">Date</label>
           <input
             type="date"
-            id="date"
-            name="date"
-            value={formData.date}
+            id="expense_date"
+            name="expense_date"
+            value={formData.expense_date}
             onChange={handleChange}
             className="form-input"
             required
