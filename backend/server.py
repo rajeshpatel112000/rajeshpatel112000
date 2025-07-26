@@ -129,9 +129,10 @@ async def delete_expense(expense_id: str):
 async def get_budget_summary():
     # Get current month expenses
     current_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    current_month_str = current_month.isoformat()
     
     expenses = await db.expenses.find({
-        "timestamp": {"$gte": current_month}
+        "timestamp": {"$gte": current_month_str}
     }).to_list(1000)
     
     total_expenses = sum(expense["amount"] for expense in expenses)
