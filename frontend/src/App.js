@@ -20,7 +20,7 @@ const ExpenseForm = ({ onExpenseAdded, editingExpense, onCancelEdit }) => {
     amount: '',
     category: 'Seeds & Plants',
     description: '',
-    date: new Date().toISOString().split('T')[0]
+    expense_date: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
@@ -29,7 +29,7 @@ const ExpenseForm = ({ onExpenseAdded, editingExpense, onCancelEdit }) => {
         amount: editingExpense.amount,
         category: editingExpense.category,
         description: editingExpense.description,
-        date: editingExpense.date
+        expense_date: editingExpense.expense_date
       });
     }
   }, [editingExpense]);
@@ -41,7 +41,7 @@ const ExpenseForm = ({ onExpenseAdded, editingExpense, onCancelEdit }) => {
         amount: parseFloat(formData.amount),
         category: formData.category,
         description: formData.description,
-        date: formData.date
+        expense_date: formData.expense_date
       };
 
       if (editingExpense) {
@@ -54,7 +54,7 @@ const ExpenseForm = ({ onExpenseAdded, editingExpense, onCancelEdit }) => {
         amount: '',
         category: 'Seeds & Plants',
         description: '',
-        date: new Date().toISOString().split('T')[0]
+        expense_date: new Date().toISOString().split('T')[0]
       });
       
       onExpenseAdded();
