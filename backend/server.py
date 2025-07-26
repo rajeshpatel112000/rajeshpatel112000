@@ -92,8 +92,8 @@ async def get_expense(expense_id: str):
 @api_router.put("/expenses/{expense_id}", response_model=Expense)
 async def update_expense(expense_id: str, expense_data: ExpenseCreate):
     expense_dict = expense_data.dict()
-    if expense_dict['date'] is None:
-        expense_dict['date'] = date.today()
+    if expense_dict['expense_date'] is None:
+        expense_dict['expense_date'] = date.today()
     
     result = await db.expenses.update_one(
         {"id": expense_id}, 
