@@ -70,7 +70,15 @@ async def create_expense(expense_data: ExpenseCreate):
     if expense_dict['expense_date'] is None:
         expense_dict['expense_date'] = date.today()
     expense_obj = Expense(**expense_dict)
-    await db.expenses.insert_one(expense_obj.dict())
+    
+    # Convert date objects to strings for MongoDB storage
+    expense_dict_for_db = expense_obj.dict()
+    if isinstance(expense_dict_for_db['expense_date'], date):
+        expense_dict_for_db['expense_date'] = expense_dict_for_db['expense_date'].isoformat()
+    if isinstance(expense_dict_for_db['timestamp'], datetime):
+        expense_dict_for_db['timestamp'] = expense_dict_for_db['timestamp'].isoformat()
+    
+    await db.expenses.insert_one(expense_dict_for_db)
     return expense_obj
 
 @api_router.get("/expenses", response_model=List[Expense])
