@@ -67,8 +67,8 @@ class StatusCheckCreate(BaseModel):
 @api_router.post("/expenses", response_model=Expense)
 async def create_expense(expense_data: ExpenseCreate):
     expense_dict = expense_data.dict()
-    if expense_dict['date'] is None:
-        expense_dict['date'] = date.today()
+    if expense_dict['expense_date'] is None:
+        expense_dict['expense_date'] = date.today()
     expense_obj = Expense(**expense_dict)
     await db.expenses.insert_one(expense_obj.dict())
     return expense_obj
