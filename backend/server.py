@@ -138,7 +138,7 @@ async def get_budget_summary():
         target_date = (datetime.now() - timedelta(days=i)).date()
         day_total = sum(
             expense["amount"] for expense in expenses 
-            if expense["date"] == target_date.isoformat()
+            if expense["expense_date"] == target_date.isoformat()
         )
         daily_expenses.append({
             "date": target_date.isoformat(),
