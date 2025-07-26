@@ -40,14 +40,14 @@ class Expense(BaseModel):
     amount: float
     category: ExpenseCategory
     description: str
-    date: date = Field(default_factory=date.today)
+    expense_date: date = Field(default_factory=date.today)
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 class ExpenseCreate(BaseModel):
     amount: float
     category: ExpenseCategory
     description: str
-    date: Optional[date] = None
+    expense_date: Optional[date] = None
 
 class BudgetSummary(BaseModel):
     total_expenses: float
